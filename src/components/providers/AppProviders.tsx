@@ -11,7 +11,7 @@ interface AppProvidersProps {
 export default function AppProviders({ children }: AppProvidersProps) {
   return (
     <SessionProvider>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange forcedTheme={typeof window === 'undefined' ? 'light' : undefined}>
         {children}
       </ThemeProvider>
     </SessionProvider>

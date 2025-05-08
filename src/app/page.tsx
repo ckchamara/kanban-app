@@ -1,12 +1,47 @@
 'use client';
 
+import React from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ui/ThemeToggle'; // Import ThemeToggle
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
   const { data: session, status } = useSession();
+  const [showInput, setShowInput] = useState(false);
+  const [boardTitle, setBoardTitle] = useState('');
+  const [boards, setBoards] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch boards for the logged-in user
+  React.useEffect(() => {
+    if (session) {
+      fetch('/api/boards')
+        .then(res => res.json())
+        .then(data => setBoards(data));
+    }
+  }, [session]);
+
+  const createBoard = async () => {
+    if (!boardTitle.trim()) return;
+    setLoading(true);
+    const res = await fetch('/api/boards', {
+      method: 'POST',
+      body: JSON.stringify({ title: boardTitle }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    setLoading(false);
+    if (res.ok) {
+      setBoardTitle('');
+      setShowInput(false);
+      // Refresh boards
+      fetch('/api/boards')
+        .then(res => res.json())
+        .then(data => setBoards(data));
+    }
+  };
 
   if (status === 'loading') {
     return (
@@ -60,10 +95,38 @@ export default function HomePage() {
         {session ? (
           <div>
             <h2 className="text-3xl font-semibold mb-6">Your Boards</h2>
-            {/* Placeholder for boards list */}
+            <div className="mb-4">
+              <Button onClick={() => setShowInput(v => !v)}>
+                {showInput ? 'Cancel' : 'Create Board'}
+              </Button>
+              {showInput && (
+                <div className="mt-2 flex gap-2">
+                  <input
+                    className="border rounded px-2 py-1 text-black"
+                    value={boardTitle}
+                    onChange={e => setBoardTitle(e.target.value)}
+                    placeholder="Board title"
+                    disabled={loading}
+                  />
+                  <Button onClick={createBoard} disabled={loading || !boardTitle.trim()}>
+                    {loading ? 'Creating...' : 'Save'}
+                  </Button>
+                </div>
+              )}
+            </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <p>Your Kanban boards will appear here.</p>
-              <p className="mt-4">User ID: {session.user?.id}</p> {/* Displaying user ID from augmented session */}
+              {boards.length === 0 ? (
+                <p>Your Kanban boards will appear here.</p>
+              ) : (
+                <ul>
+                  {boards.map(board => (
+                    <li key={board._id} className="py-2 border-b last:border-b-0">
+                      {board.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-4">User ID: {session.user?.id}</p>
             </div>
           </div>
         ) : (
